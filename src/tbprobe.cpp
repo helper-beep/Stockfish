@@ -1,21 +1,23 @@
 /*
-  Stockfish, a UCI chess playing engine derived from Glaurung 2.1
-  Copyright (c) 2013 Ronald de Man
-  Copyright (C) 2016-2018 Marco Costalba, Lucas Braesch
-
-  Stockfish is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  Stockfish is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ McBrain, a UCI chess playing engine derived from Stockfish and Glaurung 2.1
+ Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
+ Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad (Stockfish Authors)
+ Copyright (C) 2015-2016 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad (Stockfish Authors)
+ Copyright (C) 2017-2018 Michael Byrne, Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad (McBrain Authors)
+ 
+ McBrain is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ 
+ McBrain is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <algorithm>
 #include <atomic>
@@ -1131,11 +1133,11 @@ Ret probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw)
 // All of this means that during probing, the engine must look at captures and probe
 // their results and must probe the position itself. The "best" result of these
 // probes is the correct result for the position.
-// DTZ table don't store values when a following move is a zeroing winning move
+// DTZ tables do not store values when a following move is a zeroing winning move
 // (winning capture or winning pawn move). Also DTZ store wrong values for positions
 // where the best move is an ep-move (even if losing). So in all these cases set
 // the state to ZEROING_BEST_MOVE.
-template<bool CheckZeroingMoves = false>
+template<bool CheckZeroingMoves>
 WDLScore search(Position& pos, ProbeState* result) {
 
     WDLScore value, bestValue = WDLLoss;
@@ -1153,7 +1155,7 @@ WDLScore search(Position& pos, ProbeState* result) {
         moveCount++;
 
         pos.do_move(move, st);
-        value = -search(pos, result);
+        value = -search<false>(pos, result);
         pos.undo_move(move);
 
         if (*result == FAIL)
@@ -1347,7 +1349,7 @@ void Tablebases::init(const std::string& paths) {
 WDLScore Tablebases::probe_wdl(Position& pos, ProbeState* result) {
 
     *result = OK;
-    return search(pos, result);
+    return search<false>(pos, result);
 }
 
 // Probe the DTZ table for a particular position.
@@ -1412,7 +1414,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
         // otherwise we will get the dtz of the next move sequence. Search the
         // position after the move to get the score sign (because even in a
         // winning position we could make a losing capture or going for a draw).
-        dtz = zeroing ? -dtz_before_zeroing(search(pos, result))
+        dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, result))
                       : -probe_dtz(pos, result);
 
         // If the move mates, force minDTZ to 1
