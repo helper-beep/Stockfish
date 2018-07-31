@@ -1,71 +1,20 @@
-version: 1.0.{build}
-clone_depth: 50
-
-branches:
-  only:
-    - master
-    - appveyor
-
-# Operating system (build VM template)
 os: Visual Studio 2015
 
-# Build platform, i.e. x86, x64, AnyCPU. This setting is optional.
-platform:
-  - x86
-  - x64
+clone_folder: C:\projects\Stockfish
+shallow_clone: true
+clone_depth: 1
 
-# build Configuration, i.e. Debug, Release, etc.
-configuration:
-  - Debug
-  - Release
+platform: x64
 
-matrix:
-  # The build fail immediately once one of the job fails
-  fast_finish: true
+cache:
+  - x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z
 
-# Scripts that are called at very beginning, before repo cloning
-init:
-  - cmake --version
-  - msbuild /version
-
-before_build:
-  - ps: |
-      # Get sources
-      $src = get-childitem -Path *.cpp -Recurse | select -ExpandProperty FullName
-      $src = $src -join ' '
-      $src = $src.Replace("\", "/")
-
-      # Build CMakeLists.txt
-      $t = 'cmake_minimum_required(VERSION 3.8)',
-           'project(Stockfish)',
-           'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
-           'set(source_files', $src, ')',
-           'add_executable(stockfish ${source_files})'
-
-      # Write CMakeLists.txt withouth BOM
-      $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
-      $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
-      [System.IO.File]::WriteAllLines($MyPath, $t, $Utf8NoBomEncoding)
-
-      # Obtain bench reference from git log
-      $b = git log HEAD | sls "\b[Bb]ench[ :]+[0-9]{7}" | select -first 1
-      $bench = $b -match '\D+(\d+)' | % { $matches[1] }
-      Write-Host "Reference bench:" $bench
-      $g = "Visual Studio 14 2015"
-      If (${env:PLATFORM} -eq 'x64') { $g = $g + ' Win64' }
-      cmake -G "${g}" .
-      Write-Host "Generated files for: " $g
+install:
+  - if not exist x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z appveyor DownloadFile "https://sourceforge.net/projects/mingw-w64/files/Toolchains targetting Win64/Personal Builds/mingw-builds/4.9.2/threads-posix/seh/x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z" -FileName x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z
+  - 7z x -oC:\MinGW\msys\1.0\ x86_64-4.9.2-release-posix-seh-rt_v4-rev2.7z > nul
 
 build_script:
-  - cmake --build . --config %CONFIGURATION% -- /verbosity:minimal
+  - C:\MinGW\msys\1.0\bin\sh.exe -c "cd /c/projects/Stockfish/; /c/projects/Stockfish/deploy/msys.sh"
 
-before_test:
-  - cd src/%CONFIGURATION%
-  - stockfish bench 2> out.txt >NUL
-  - ps: |
-      # Verify bench number
-      $s = (gc "./out.txt" | out-string)
-      $r = ($s -match 'Nodes searched \D+(\d+)' | % { $matches[1] })
-      Write-Host "Engine bench:" $r
-      Write-Host "Reference bench:" $bench
-      If ($r -ne $bench) { exit 1 }
+artifacts:
+  - path: '*\stockfish-windows-*'
