@@ -17,4 +17,4 @@ build_script:
   - C:\MinGW\msys\1.0\bin\sh.exe -c "cd /c/projects/Stockfish/; /c/projects/Stockfish/msys.sh"
 
 artifacts:
-  - path: McB*
+  - path: src\McB*
