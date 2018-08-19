@@ -35,12 +35,12 @@ namespace {
   constexpr int QuadraticOurs[][PIECE_TYPE_NB] = {
     //            OUR PIECES
     // pair pawn knight bishop rook queen
-    {1667                               }, // Bishop pair
-    {  40,    0                         }, // Pawn
-    {  32,  255,  -3                    }, // Knight      OUR PIECES
+    {1438                               }, // Bishop pair
+    {  40,   38                         }, // Pawn
+    {  32,  255, -62                    }, // Knight      OUR PIECES
     {   0,  104,   4,    0              }, // Bishop
-    { -26,   -2,  47,   105,  -149      }, // Rook
-    {-189,   24, 117,   133,  -134, -10 }  // Queen
+    { -26,   -2,  47,   105,  -208      }, // Rook
+    {-189,   24, 117,   133,  -134, -6  }  // Queen
   };
 
   constexpr int QuadraticTheirs[][PIECE_TYPE_NB] = {
@@ -57,16 +57,24 @@ namespace {
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
   Endgame<KXK>    EvaluateKXK[] = { Endgame<KXK>(WHITE),    Endgame<KXK>(BLACK) };
-
+  Endgame<KQXKX>  EvaluateKQXKX[] = { Endgame<KQXKX>(WHITE), Endgame<KQXKX>(BLACK) };
   Endgame<KBPsK>  ScaleKBPsK[]  = { Endgame<KBPsK>(WHITE),  Endgame<KBPsK>(BLACK) };
   Endgame<KQKRPs> ScaleKQKRPs[] = { Endgame<KQKRPs>(WHITE), Endgame<KQKRPs>(BLACK) };
   Endgame<KPsK>   ScaleKPsK[]   = { Endgame<KPsK>(WHITE),   Endgame<KPsK>(BLACK) };
   Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
 
-  // Helper used to detect a given material distribution
+  // Helpers used to detect a given material distribution
   bool is_KXK(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
           && pos.non_pawn_material(us) >= RookValueMg;
+  }
+	
+  bool is_KQXKX(const Position& pos, Color us) {
+	return    more_than_one(pos.pieces(~us))
+	&& !pos.count<PAWN>(~us)
+	&&  pos.non_pawn_material(~us) <= RookValueMg
+	&&  pos.count<QUEEN>(us)
+	&&  pos.non_pawn_material(us) > QueenValueMg + RookValueMg;
   }
 
   bool is_KBPsK(const Position& pos, Color us) {
@@ -145,11 +153,18 @@ Entry* probe(const Position& pos) {
       return e;
 
   for (Color c = WHITE; c <= BLACK; ++c)
+  {
       if (is_KXK(pos, c))
       {
           e->evaluationFunction = &EvaluateKXK[c];
           return e;
       }
+	  else if (is_KQXKX(pos, c))
+	  {
+		  e->evaluationFunction = &EvaluateKQXKX[c];
+		  return e;
+	  }
+  }
 
   // OK, we didn't find any special evaluation function for the current material
   // configuration. Is there a suitable specialized scaling function?
@@ -207,8 +222,6 @@ Entry* probe(const Position& pos) {
       e->factor[BLACK] = uint8_t(npm_b <  RookValueMg   ? SCALE_FACTOR_DRAW :
                                  npm_w <= BishopValueMg ? 4 : 14);
 
-  if (npm_w != npm_b || pos.count<PAWN>(WHITE) != pos.count<PAWN>(BLACK))
-  {
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", which allows us to be more flexible
   // in defining bishop pair bonuses.
@@ -218,7 +231,7 @@ Entry* probe(const Position& pos) {
   { pos.count<BISHOP>(BLACK) > 1, pos.count<PAWN>(BLACK), pos.count<KNIGHT>(BLACK),
     pos.count<BISHOP>(BLACK)    , pos.count<ROOK>(BLACK), pos.count<QUEEN >(BLACK) } };
 
-  e->value = int16_t((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);}
+  e->value = int16_t((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
   return e;
 }
 

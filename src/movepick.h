@@ -40,12 +40,11 @@ class StatsEntry {
   T entry;
 
 public:
-  T* get() { return &entry; }
   void operator=(const T& v) { entry = v; }
-  operator T() const {
-    assert(std::is_scalar<T>::value); // Ensure no costly hidden copies
-    return entry;
-  }
+  T* operator&() { return &entry; }
+  T* operator->() { return &entry; }
+  operator const T&() const { return entry; }
+
   void operator<<(int bonus) {
     assert(abs(bonus) <= D); // Ensure range is [-D, D]
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
@@ -64,18 +63,21 @@ public:
 template <typename T, int D, int Size, int... Sizes>
 struct Stats : public std::array<Stats<T, D, Sizes...>, Size>
 {
-  T* get() { return this->at(0).get(); }
+  typedef Stats<T, D, Size, Sizes...> stats;
 
   void fill(const T& v) {
-    T* p = get();
-    std::fill(p, p + sizeof(*this) / sizeof(StatsEntry<T, D>), v);
+
+    // For standard-layout 'this' points to first struct member
+    assert(std::is_standard_layout<stats>::value);
+
+    typedef StatsEntry<T, D> entry;
+    entry* p = reinterpret_cast<entry*>(this);
+    std::fill(p, p + sizeof(*this) / sizeof(entry), v);
   }
 };
 
 template <typename T, int D, int Size>
-struct Stats<T, D, Size> : public std::array<StatsEntry<T, D>, Size> {
-  T* get() { return this->at(0).get(); }
-};
+struct Stats<T, D, Size> : public std::array<StatsEntry<T, D>, Size> {};
 
 /// In stats table, D=0 means that the template parameter is not used
 enum StatsParams { NOT_USED = 0 };
@@ -127,7 +129,6 @@ public:
                                            Move,
                                            Move*);
   Move next_move(bool skipQuiets = false);
-  bool is_refutation(Move m) const { return m == refutations[0] || m == refutations[1] || m == refutations[2]; }
 
 private:
   template<PickType T, typename Pred> Move select(Pred);

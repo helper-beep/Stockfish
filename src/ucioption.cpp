@@ -65,7 +65,7 @@ void init(OptionsMap& o) {
   constexpr int MaxHashMB = Is64Bit ? 131072 : 2048;
 
   o["Contempt"]              << Option(21, -150, 150);
-  o["Analysis Contempt"]     << Option("Both var Off var White var Black var Both", "Off");
+  o["Analysis Contempt"]     << Option("Both var Off var White var Black var Both", "Both");
   o["UCI_AnalyseMode"]       << Option(false);
   o["Threads"]               << Option(1, 1, 512, on_threads);
   o["Hash"]                  << Option(16, 1, MaxHashMB, on_hash_size);

@@ -39,6 +39,7 @@ enum EndgameCode {
   EVALUATION_FUNCTIONS,
   KNNK,  // KNN vs K
   KXK,   // Generic "mate lone king" eval
+  KQXKX, // Big material advantage eval
   KBNK,  // KBN vs K
   KPK,   // KP vs K
   KRKP,  // KR vs KP
@@ -65,6 +66,7 @@ enum EndgameCode {
 
 /// Endgame functions can be of two types depending on whether they return a
 /// Value or a ScaleFactor.
+
 template<EndgameCode E> using
 eg_type = typename std::conditional<(E < SCALING_FUNCTIONS), Value, ScaleFactor>::type;
 

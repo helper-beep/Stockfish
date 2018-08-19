@@ -348,8 +348,8 @@ namespace {
 
   // init_magics() computes all rook and bishop attacks at startup. Magic
   // bitboards are used to look up attacks of sliding pieces. As a reference see
-  // chessprogramming.wikispaces.com/Magic+Bitboards. In particular, we use
-  // precomputed fixed shift magics.
+  // chessprogramming.wikispaces.com/Magic+Bitboards. In particular, here we
+  // use the so called "fancy" approach.
 
   template<PieceType Pt>
   void init_magics(MagicInit init[], Magic magics[], Direction directions[]) {
