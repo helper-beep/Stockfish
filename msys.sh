@@ -7,4 +7,4 @@ cd src
 
 make clean
 make profile-build COMP=mingw ARCH=x86-64
-strip McB-96.exe
+strip McBrain-97.exe
